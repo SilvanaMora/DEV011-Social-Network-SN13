@@ -59,7 +59,8 @@ function login(navigateTo) {
       navigateTo('/homepage');
     }).catch((error) => {
       const errorCode = error.code;
-      if (errorCode === 'auth/invalid-email') {
+      console.log (errorCode)
+      if (errorCode === 'auth/invalid-login-credentials') {
         modalLoginError.style.display = 'block';
       } else {
         modalLoginError.style.display = 'block';
