@@ -9,7 +9,7 @@ import {
 } from 'firebase/auth';
 import {
   addDoc, arrayUnion, arrayRemove, collection,
-  deleteDoc, doc, getDocs, updateDoc,
+  deleteDoc, doc, getDoc, updateDoc, 
 } from 'firebase/firestore';
 import {
   auth, db,
@@ -59,33 +59,21 @@ onAuthStateChanged(auth, (user) => {
 });
 
 // Función para dar like a los post
-export async function likePost(postId, operationType) {
-  console.log(postId, operationType);
-  const user = auth.currentUser;
-  console.log(user.uid);
+export async function likePost(postId, operationType, userUid) {
   try {
-    // Obtener la información actual del post
-    const postRef = doc(db, 'postsDrinks', postId);
-    const postQuerySnapshot = await getDocs(postRef);
-    console.log(postQuerySnapshot);
-    const postDoc = postQuerySnapshot.data();
-    console.log(postDoc);
+    const postRef = doc(db, 'postDrinks', postId);
+    const postDoc = await getDoc(postRef);
+
     if (postDoc.exists()) {
-      // Obtener la lista de usuarios que han dado like
-      const likedBy = postDoc.data().likedBy || [];
-      console.log(likedBy);
-      // Realizar la operación correspondiente
+      let likedBy = postDoc.data().likedBy || [];
+
       if (operationType === 'arrayUnion') {
-        console.log('arrayUnion');
-        await updateDoc(postRef, {
-          likedBy: arrayUnion(user.uid),
-        });
+        likedBy = arrayUnion(likedBy, userUid);
       } else if (operationType === 'arrayRemove') {
-        await updateDoc(postRef, {
-          likedBy: arrayRemove(user.uid),
-        });
+        likedBy = arrayRemove(likedBy, userUid);
       }
 
+      await updateDoc(postRef, { likedBy });
       console.log('Operación de like realizada correctamente');
     } else {
       console.log('El post no existe');
@@ -96,11 +84,54 @@ export async function likePost(postId, operationType) {
 }
 
 // Función para eliminar un post
-export const deletePost = (documentId) => {
-  console.log(documentId, 'deletePost');
-  deleteDoc(doc(db, 'postDrinks', documentId));
-};
+export const deletePost = async (documentId) => {
+  try {
+    const user = auth.currentUser;
 
+    // Obtener el post que se quiere eliminar
+    const postRef = doc(db, 'postDrinks', documentId);
+    const postSnapshot = await getDoc(postRef);
+
+    // Verificar si el post existe y si el usuario actual es el autor
+    if (postSnapshot.exists()) {
+      const postData = postSnapshot.data();
+      if (postData.authorId === user.uid) { // Verificar si el autor del post es el usuario actual
+        await deleteDoc(postRef);
+        console.log('Post eliminado exitosamente.');
+      } else {
+        console.log('No tienes permisos para eliminar este post.');
+      }
+    } else {
+      console.log('El post que intentas eliminar no existe.');
+    }
+  } catch (error) {
+    console.error('Error al intentar eliminar el post:', error);
+  }
+};
+export const editPost = async (postId, updatedData) => {
+  try {
+    const user = auth.currentUser;
+
+    // Obtener el post que se quiere editar
+    const postRef = doc(db, 'postDrinks', postId);
+    const postSnapshot = await getDoc(postRef);
+
+    // Verificar si el post existe y si el usuario actual es el autor
+    if (postSnapshot.exists()) {
+      const postData = postSnapshot.data();
+      if (postData.authorId === user.uid) { // Verificar si el autor del post es el usuario actual
+        await updateDoc(postRef, updatedData);
+        console.log('Post editado exitosamente.');
+      } else {
+        console.log('No tienes permisos para editar este post.');
+      }
+    } else {
+      console.log('El post que intentas editar no existe.');
+    }
+  } catch (error) {
+    console.error('Error al intentar editar el post:', error);
+  }
+}
 // Función para cerrar sesión
 export const signOutFunction = () => {
   signOut(auth);
