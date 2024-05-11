@@ -6,6 +6,7 @@ import {
   GoogleAuthProvider,
   signOut,
   updateProfile,
+  getAuth,
 } from 'firebase/auth';
 import {
   addDoc, arrayUnion, arrayRemove, collection,
@@ -59,7 +60,11 @@ onAuthStateChanged(auth, (user) => {
 });
 
 // Función para dar like a los post
-export async function likePost(postId, operationType, userUid) {
+export async function likePost(postId, operationType) {
+  const auth = getAuth();
+  console.log (auth)
+  const userUid = auth.currentUser.uid;
+  console.log (postId, operationType, userUid)
   try {
     const postRef = doc(db, 'postDrinks', postId);
     const postDoc = await getDoc(postRef);
@@ -68,9 +73,9 @@ export async function likePost(postId, operationType, userUid) {
       let likedBy = postDoc.data().likedBy || [];
 
       if (operationType === 'arrayUnion') {
-        likedBy = arrayUnion(likedBy, userUid);
+        likedBy = arrayUnion(userUid);
       } else if (operationType === 'arrayRemove') {
-        likedBy = arrayRemove(likedBy, userUid);
+        likedBy = arrayRemove(userUid);
       }
 
       await updateDoc(postRef, { likedBy });
